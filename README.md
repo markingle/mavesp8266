@@ -2,7 +2,7 @@
 
 ## Current Binary
 
-Download the current version (MAVLink V2) from here: [Firmware version 1.2.2](http://www.grubba.com/mavesp8266/firmware-1.2.2.bin)
+Download the current version (MAVLink V2) from here: [ArduPilot fork](https://firmware.ardupilot.org/Tools/MAVESP8266/latest/)
 
 Download the legacy version (MAVLink V1) from here: [Firmware version 1.1.1](http://www.grubba.com/mavesp8266/firmware-1.1.1.bin)
 
@@ -22,6 +22,8 @@ platformio run
 ```
 
 When you run ```platformio run``` for the first time, it will download the toolchains and all necessary libraries automatically.
+
+## Note: if build fails with "AttributeError: module 'enum' has no attribute 'IntFlag'", try "pip3 uninstall -y enum34"
 
 ### Useful commands:
 
