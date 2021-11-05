@@ -31,7 +31,9 @@ Vagrant.configure(2) do |config|
      fi
 
      sudo -u $VAGRANT -H bash -c "echo 'cd /vagrant' >>~$VAGRANT/.bash_login"
-     sudo -u $VAGRANT -H bash -c "echo 'echo Try: platformio run -e esp01 -t upload' >>~$VAGRANT/.bash_login"
+     for PLATFORM in esp01 esp01_1m esp12e; do
+       sudo -u $VAGRANT -H bash -c "echo 'echo Try: platformio run -e $PLATFORM -t upload' >>~$VAGRANT/.bash_login"
+     done
 
      sudo -u $VAGRANT -H bash -c "cd /vagrant; platformio run"
 # platformio run -e esp01 -t upload
