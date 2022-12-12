@@ -42,7 +42,20 @@
 #include "mavesp8266_httpd.h"
 #include "mavesp8266_component.h"
 
+#if !defined(ARDUINO_ESP32_DEV) && !defined(ARDUINO_ESP32S3_DEV) && !defined(ARDUINO_ESP32C3_DEV)
 #include <ESP8266mDNS.h>
+#else
+/* ESP32 */
+typedef uint8_t uint8;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+#include <esp_event.h>
+#include <esp_event_loop.h>
+#include <esp_wifi.h>
+#include <esp_wifi_types.h>
+#include <esp_err.h>
+#include <mdns.h>
+#endif
 
 #define GPIO02  2
 
@@ -109,7 +122,11 @@ void wait_for_client() {
 #ifdef ENABLE_DEBUG
     int wcount = 0;
 #endif
+#if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
+    uint8 client_count = WiFi.softAPgetStationNum();
+#else    
     uint8 client_count = wifi_softap_get_station_num();
+#endif    
     while (!client_count) {
 #ifdef ENABLE_DEBUG
         Serial1.print(".");
@@ -119,7 +136,11 @@ void wait_for_client() {
         }
 #endif
         delay(1000);
+#if defined(ARDUINO_ESP32_DEV)|| defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
+	client_count = WiFi.softAPgetStationNum();
+#else	
         client_count = wifi_softap_get_station_num();
+#endif	
     }
     DEBUG_LOG("Got %d client(s)\n", client_count);
 }
@@ -129,7 +150,11 @@ void wait_for_client() {
 void reset_interrupt(){
     Parameters.resetToDefaults();
     Parameters.saveAllToEeprom();
+#if defined(ARDUINO_ESP32_DEV)|| defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
+    ESP.restart();
+#else    
     ESP.reset();
+#endif    
 }
 
 //---------------------------------------------------------------------------------
@@ -155,8 +180,16 @@ void setup() {
 
     if(Parameters.getWifiMode() == WIFI_MODE_STA){
         //-- Connect to an existing network
+#if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) 
+        WiFi.mode(WIFI_MODE_STA);      
+#else            
         WiFi.mode(WIFI_STA);
+#endif
+#if defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
+        WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), IPAddress((uint32_t)0), IPAddress((uint32_t)0));
+#else
         WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), 0U, 0U);
+#endif	
         WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword());
 
         //-- Wait a minute to connect
@@ -178,20 +211,37 @@ void setup() {
 
     if(Parameters.getWifiMode() == WIFI_MODE_AP){
         //-- Start AP
+#if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
+	WiFi.mode(WIFI_MODE_AP);      /* Default to WPA2 */
+#else      
         WiFi.mode(WIFI_AP);
-        WiFi.encryptionType(AUTH_WPA2_PSK);
+        WiFi.encryptionType(AUTH_WPA2_PSK);	
+#endif
         WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
         localIP = WiFi.softAPIP();
         wait_for_client();
     }
-
     //-- Boost power to Max
+#if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
+    {
+         int8_t power;
+	 esp_wifi_get_max_tx_power(&power);
+	 esp_wifi_set_max_tx_power(power);
+    }
+#else
     WiFi.setOutputPower(20.5);
+#endif    
     //-- MDNS
     char mdsnName[256];
-    sprintf(mdsnName, "MavEsp8266-%d",localIP[3]);
+#if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
+    sprintf(mdsnName, "MavEsp32-%d",localIP[3]);
+    mdns_init();
+    mdns_service_add(NULL, "http", "tcp", 80, NULL, 0);
+#else
+    sprintf(mdsnName, "MavEsp8266-%d",localIP[3]);    
     MDNS.begin(mdsnName);
     MDNS.addService("http", "tcp", 80);
+#endif    
     //-- Initialize Comm Links
     DEBUG_LOG("Start WiFi Bridge\n");
     DEBUG_LOG("Local IP: %s\n", localIP.toString().c_str());

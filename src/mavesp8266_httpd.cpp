@@ -34,14 +34,20 @@
  *
  * @author Gus Grubba <mavlink@grubba.com>
  */
-
 #include "mavesp8266.h"
 #include "mavesp8266_httpd.h"
 #include "mavesp8266_parameters.h"
 #include "mavesp8266_gcs.h"
 #include "mavesp8266_vehicle.h"
-
+#if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
+#include <WebServer.h>
+#include <Update.h>
+#include <esp_spi_flash.h>
+#else
 #include <ESP8266WebServer.h>
+#endif
+
+
 
 const char PROGMEM kTEXTPLAIN[]  = "text/plain";
 const char PROGMEM kTEXTHTML[]   = "text/html";
@@ -87,8 +93,12 @@ const char* kFlashMaps[7] = {
 
 static uint32_t flash = 0;
 static char paramCRC[12] = {""};
-
+#if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
+WebServer           webServer(80);
+extern WiFiUDP             _udp;
+#else
 ESP8266WebServer    webServer(80);
+#endif
 MavESP8266Update*   updateCB    = NULL;
 bool                started     = false;
 
@@ -141,7 +151,11 @@ void handle_upload_status() {
         #ifdef DEBUG_SERIAL
             DEBUG_SERIAL.setDebugOutput(true);
         #endif
+#if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
+	_udp.stop();
+#else	 	    
         WiFiUDP::stopAll();
+#endif	
         Serial.end();
         #ifdef DEBUG_SERIAL
             DEBUG_SERIAL.printf("Update: %s\n", upload.filename.c_str());
@@ -370,7 +384,11 @@ static void handle_getStatus()
     message += "</td></tr></table>";
     message += "<p>System Status</p><table>\n";
     message += "<tr><td width=\"240\">Flash Size</td><td>";
+#if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
+    message += spi_flash_get_chip_size();
+#else      
     message += ESP.getFlashChipRealSize();
+#endif    
     message += "</td></tr>\n";
     message += "<tr><td width=\"240\">Flash Available</td><td>";
     message += flash;
@@ -411,18 +429,30 @@ void handle_getJSysInfo()
     if(!paramCRC[0]) {
         snprintf(paramCRC, sizeof(paramCRC), "%08X", getWorld()->getParameters()->paramHashCheck());
     }
+#if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
+    uint32_t fid = 0; /* TODO */
+#else    
     uint32_t fid = spi_flash_get_id();
+#endif    
     char message[512];
     snprintf(message, 512,
         "{ "
+#if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
+        "\"size\": \"%d\", "
+#else
         "\"size\": \"%s\", "
+#endif	     
         "\"id\": \"0x%02lX 0x%04lX\", "
         "\"flashfree\": \"%u\", "
         "\"heapfree\": \"%u\", "
         "\"logsize\": \"%u\", "
         "\"paramcrc\": \"%s\""
         " }",
+#if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
+        ESP.getFlashChipSize(),
+#else	     
         kFlashMaps[system_get_flash_size_map()],
+#endif	     
         (long unsigned int)(fid & 0xff), (long unsigned int)((fid & 0xff00) | ((fid >> 16) & 0xff)),
         flash,
         ESP.getFreeHeap(),

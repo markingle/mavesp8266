@@ -139,7 +139,11 @@ MavESP8266Vehicle::getStatus()
 bool
 MavESP8266Vehicle::_readMessage()
 {
+#if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined (ARDUINO_ESP32C3_DEV)  
+    char msgReceived = false;
+#else    
     bool msgReceived = false;
+#endif    
     int16_t avail = Serial.available();
     if (avail <= 0 && _non_mavlink_len != 0 && _rxstatus.parse_state <= MAVLINK_PARSE_STATE_IDLE) {
         // flush out the non-mavlink buffer when there is nothing pending. This

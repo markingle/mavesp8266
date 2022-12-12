@@ -38,17 +38,35 @@
 #ifndef MAVESP8266_H
 #define MAVESP8266_H
 
+/*
+ * https://www.espressif.com/en/products/devkits
+ * ESP32 Series
+ * Modules: ESP32-WROOM-32E, ESP32-WROOM-32UE, ESP32­-WROOM­-DA, ESP32-WROVER-E, ESP32-WROVER-IE
+ * 
+ * ESP32-S3 Series
+ * Modules: ESP32-S3-WROOM-1, ESP32-S3-WROOM-1U, ESP32-S3-WROOM-2, ESP32-S3-WROOM-2U
+ * 
+ */
+#if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined (ARDUINO_ESP32C3_DEV)
+#include <WiFi.h>
+#include <Arduino.h>
+#else
 #include <ESP8266WiFi.h>
+#endif
+
 #include <WiFiClient.h>
 #include <WiFiUdp.h>
 
 #undef F
 #include <ardupilotmega/mavlink.h>
 
+
+#if !defined(ARDUINO_ESP32_DEV) && !defined(ARDUINO_ESP32S3_DEV) && !defined(ARDUINO_ESP32C3_DEV)
  extern "C" {
     // Espressif SDK
     #include "user_interface.h"
 }
+#endif
 
 class MavESP8266Parameters;
 class MavESP8266Component;
@@ -64,8 +82,8 @@ class MavESP8266GCS;
 
 //-- TODO: This needs to come from the build system
 #define MAVESP8266_VERSION_MAJOR    1
-#define MAVESP8266_VERSION_MINOR    2
-#define MAVESP8266_VERSION_BUILD    3
+#define MAVESP8266_VERSION_MINOR    3
+#define MAVESP8266_VERSION_BUILD    0
 #define MAVESP8266_VERSION          ((MAVESP8266_VERSION_MAJOR << 24) & 0xFF00000) | ((MAVESP8266_VERSION_MINOR << 16) & 0x00FF0000) | (MAVESP8266_VERSION_BUILD & 0xFFFF)
 
 //-- Debug sent out to Serial1 (GPIO02), which is TX only (no RX).

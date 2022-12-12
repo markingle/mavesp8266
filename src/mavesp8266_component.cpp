@@ -321,5 +321,9 @@ MavESP8266Component::_wifiReboot(MavESP8266Bridge* sender)
 {
     _sendStatusMessage(sender, MAV_SEVERITY_NOTICE, "Rebooting WiFi Bridge.");
     delay(50);
+#if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
+    ESP.restart();
+#else    
     ESP.reset();
+#endif    
 }

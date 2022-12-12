@@ -105,7 +105,12 @@ MavESP8266Log::log(const char *format, ...) {
     va_list arg;
     va_start(arg, format);
     char temp[1024];
+#if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
+    size_t len = vsnprintf(temp, 1024, format, arg);    
+#else    
     size_t len = ets_vsnprintf(temp, 1024, format, arg);
+#endif
+    
 #ifdef ENABLE_DEBUG
     Serial1.print(temp);
 #endif
@@ -160,7 +165,11 @@ MavESP8266Log::getLog(uint32_t* pStart, uint32_t* pLen) {
 uint32_t
 MavESP8266Log::getLogSize()
 {
+#if defined(ARDUINO_ESP32C3_DEV)
+    return std::min<uint32_t>(_log_position, _buffer_size);
+#else  
     return min(_log_position, _buffer_size);
+#endif    
 }
 
 //---------------------------------------------------------------------------------
