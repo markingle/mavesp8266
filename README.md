@@ -23,7 +23,7 @@ platformio run
 
 When you run ```platformio run``` for the first time, it will download the toolchains and all necessary libraries automatically.
 
-## Note: if build fails with "AttributeError: module 'enum' has no attribute 'IntFlag'", try "pip3 uninstall -y enum34"
+Note: if build fails with `AttributeError: module 'enum' has no attribute 'IntFlag'`, try `pip3 uninstall -y enum34`
 
 ### Useful commands: ESP12e
 
