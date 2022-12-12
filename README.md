@@ -25,15 +25,6 @@ When you run ```platformio run``` for the first time, it will download the toolc
 
 ## Note: if build fails with "AttributeError: module 'enum' has no attribute 'IntFlag'", try "pip3 uninstall -y enum34"
 
-
-### Useful commands: ESP32-S3-MINI-1 or ESP32-S3-MINI-1U [Mouser](https://www.mouser.com/ProductDetail/356-ESP32S3DEVKTM1N8)
-* ```platformio run -e esp32-s3-devkitc-1 -t upload```
-
-### Useful commands: ESP32-WROOM (ESP32-WROOM-32UE)
-
-* ```platformio run -e espwroom32 -t upload```
-* ```platformio run -e espwroom32``` - process/build just the ESP32 target
-
 ### Useful commands: ESP12e
 
 * ```platformio run``` - process/build all targets
@@ -47,8 +38,26 @@ When you run ```platformio run``` for the first time, it will download the toolc
 * ```platformio run -e esp01_1m -t upload``` - build and upload firmware to embedded board
 * ```platformio run -t clean``` - clean project (remove compiled files)
 
+### Useful commands: ESP32-WROOM (ESP32-WROOM-32UE)
 
-The resulting image(s) can be found in the directory ```.pioenvs``` created during the build process.
+* ```platformio run -e espwroom32 -t upload```
+* ```platformio run -e espwroom32``` - process/build just the ESP32 target
+
+### Useful commands: ESP32-S3 or ESP32-S3
+* ```platformio run -e esp32-s3-devkitc-1 -t upload```
+* ```platformio run -e esp32-s3-devkitc-1 ``` - process/build just the ESP32 target
+
+### Useful commands: ESP32-S3-MINI or ESP32-S3-MINI [Mouser](https://www.mouser.com/ProductDetail/356-ESP32S3DEVKTM1N8)
+* ```platformio run -e esp32-s3-devkitm-1 -t upload```
+* ```platformio run -e esp32-s3-devkitm-1 ``` - process/build just the ESP32 target
+
+### Useful commands: ESP32-C3-MINI
+* ```platformio run -e esp32-c3-devkitm-1 -t upload```
+* ```platformio run -e esp32-c3-devkitm-1 ``` - process/build just the ESP32 target
+
+ resulting image(s) can be found in the directory ```.pioenvs``` created during the build process.
+
+### Platform [Details](https://github.com/RealFlightSystems/mavesp8266/wiki/Espressif-WLAN-Mavlink-Router-and-Bridge-Development)
 
 ### MavLink Submodule
 
