@@ -41,7 +41,7 @@
 #include "mavesp8266_component.h"
 #if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
 #include <esp_wifi.h>
-#include <tcpip_adapter.h>
+#include <esp_netif.h>
 #endif
 
 WiFiUDP             _udp;
@@ -61,11 +61,13 @@ void
 MavESP8266GCS::begin(MavESP8266Bridge* forwardTo, IPAddress gcsIP)
 {
     MavESP8266Bridge::begin(forwardTo);
+    //Serial.println("UDP initializing...");
     _ip = gcsIP;
     //-- Init variables that shouldn't change unless we reboot
     _udp_port = getWorld()->getParameters()->getWifiUdpHport();
     //-- Start UDP
     _udp.begin(getWorld()->getParameters()->getWifiUdpCport());
+    //Serial.println("UDP begin has started");
 }
 
 //---------------------------------------------------------------------------------
@@ -74,8 +76,10 @@ void
 MavESP8266GCS::readMessage()
 {
     //-- Read UDP
+    //Serial.println("Entered Read GCS Msg");
     if(_readMessage()) {
         //-- If we have a message, forward it
+        //Serial.println("Entered _Read GCS Msg");
         _forwardTo->sendMessage(&_message);
         memset(&_message, 0, sizeof(_message));
     }
@@ -97,13 +101,17 @@ MavESP8266GCS::readMessage()
 bool
 MavESP8266GCS::_readMessage()
 {
+    //Serial.println(">>>>> Entered Underscore Read Msg <<<<<");
 #if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
     char msgReceived = false;
 #else  
     bool msgReceived = false;
 #endif    
     int udp_count = _udp.parsePacket();
+    //Serial.print("UDP Count: ");
+    //Serial.println(udp_count);
     if (udp_count <= 0 && _non_mavlink_len != 0 && _rxstatus.parse_state <= MAVLINK_PARSE_STATE_IDLE) {
+        //Serial.println(">>>>> UDP not active <<<<<");
         // flush out the non-mavlink buffer when there is nothing pending. This
         // allows us to gather non-mavlink msgs into a single write
         _forwardTo->sendMessageRaw(_non_mavlink_buffer, _non_mavlink_len);
@@ -113,6 +121,7 @@ MavESP8266GCS::_readMessage()
     {
         while(udp_count--)
         {
+            //Serial.println("UDP - Reading - UDP");
             int result = _udp.read();
             if (result >= 0)
             {
@@ -133,6 +142,8 @@ MavESP8266GCS::_readMessage()
                     if(_ip[3] == 255) {
                         _ip = _udp.remoteIP();
                         getWorld()->getLogger()->log("Response from GCS. Setting GCS IP to: %s\n", _ip.toString().c_str());
+                        //Serial.print("Response from GCS. Setting GCS IP to: ");
+                        //Serial.println(_ip.toString().c_str());
                     }
                     //-- First packets
                     if(!_heard_from) {
@@ -180,6 +191,7 @@ MavESP8266GCS::_readMessage()
 
 
                     //-- Got message, leave
+                    //Serial.println("Got message, leaving...");
                     break;
                 }
             }
@@ -198,8 +210,10 @@ MavESP8266GCS::_readMessage()
             _heard_from = false;
             _ip[3] = 255;
             getWorld()->getLogger()->log("Heartbeat timeout from GCS\n");
+            //Serial.println("Heartbeat timeout from GCS");
         }
     }
+    //Serial.println("Leaving Underscore Read Vehicle Msg");
     return msgReceived;
 }
 

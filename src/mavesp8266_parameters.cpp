@@ -41,8 +41,8 @@
 #include "mavesp8266_parameters.h"
 #include "crc.h"
 
-const char* kDEFAULT_SSID       = "ArduPilot";
-const char* kDEFAULT_PASSWORD   = "ardupilot";
+const char* kDEFAULT_SSID       = "ESP32_GW";
+const char* kDEFAULT_PASSWORD   = "";
 
 //-- Reserved space for EEPROM persistence. A change in this will cause all values to reset to defaults.
 #define EEPROM_SPACE            32 * sizeof(uint32_t)
@@ -163,13 +163,18 @@ MavESP8266Parameters::resetToDefaults()
     _sw_version        = MAVESP8266_VERSION;
     _debug_enabled     = 0;
     _wifi_mode         = DEFAULT_WIFI_MODE;
+    //_wifi_mode         = 0;
     _wifi_channel      = DEFAULT_WIFI_CHANNEL;
     _wifi_udp_hport    = DEFAULT_UDP_HPORT;
     _wifi_udp_cport    = DEFAULT_UDP_CPORT;
     _uart_baud_rate    = DEFAULT_UART_SPEED;
+    //_uart_baud_rate    = 115200;
     _wifi_ipsta        = 0;
+    //_wifi_ipsta        = 1963043008;
     _wifi_gatewaysta   = 0;
+    //_wifi_gatewaysta   = 16885952;
     _wifi_subnetsta    = 0;
+    //_wifi_subnetsta    = 16777215;
     strncpy(_wifi_ssid,         kDEFAULT_SSID,      sizeof(_wifi_ssid));
     strncpy(_wifi_password,     kDEFAULT_PASSWORD,  sizeof(_wifi_password));
     strncpy(_wifi_ssidsta,      kDEFAULT_SSID,      sizeof(_wifi_ssidsta));

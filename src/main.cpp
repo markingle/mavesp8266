@@ -50,12 +50,19 @@ typedef uint8_t uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
 #include <esp_event.h>
-#include <esp_event_loop.h>
+#include <esp_event.h>
 #include <esp_wifi.h>
 #include <esp_wifi_types.h>
 #include <esp_err.h>
 #include <mdns.h>
 #endif
+
+IPAddress local_IP(192, 168, 1, 117);
+IPAddress gateway(192, 168, 1, 1);
+IPAddress subnet(255, 255, 255, 0);
+
+const char* routerSSID = "Skybrush_2Ghz";
+const char* routerPWD = "";
 
 #define GPIO02  2
 
@@ -119,6 +126,7 @@ MavESP8266World* getWorld()
 //-- Wait for a DHCPD client
 void wait_for_client() {
     DEBUG_LOG("Waiting for a client...\n");
+    Serial.println("Waiting for a client....");
 #ifdef ENABLE_DEBUG
     int wcount = 0;
 #endif
@@ -162,10 +170,11 @@ void reset_interrupt(){
 void setup() {
     delay(1000);
     Parameters.begin();
+    Serial.begin(115200);
 #ifdef ENABLE_DEBUG
     //   We only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
-    Serial1.begin(115200);
+    //Serial1.begin(115200);
 #else
     //-- Initialized GPIO02 (Used for "Reset To Factory")
     pinMode(GPIO02, INPUT_PULLUP);
@@ -175,15 +184,24 @@ void setup() {
 
     DEBUG_LOG("\nConfiguring access point...\n");
     DEBUG_LOG("Free Sketch Space: %u\n", ESP.getFreeSketchSpace());
+    Serial.println("Configuring access point/station");
 
     WiFi.disconnect(true);
 
     if(Parameters.getWifiMode() == WIFI_MODE_STA){
         //-- Connect to an existing network
 #if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) 
-        WiFi.mode(WIFI_MODE_STA);      
+        WiFi.mode(WIFI_MODE_STA);  
+        Serial.println("Station Mode 1");
+        //WiFi.config(local_IP, gateway, subnet, 0U, 0U);
+        //WiFi.begin(routerSSID, routerPWD); 
+        WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), 0U, 0U);
+        WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword());    
 #else            
         WiFi.mode(WIFI_STA);
+        Serial.println("Station Mode 2");
+        WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), 0U, 0U);
+        WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword()); 
 #endif
 #if defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
         WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), IPAddress((uint32_t)0), IPAddress((uint32_t)0));
@@ -194,9 +212,9 @@ void setup() {
 
         //-- Wait a minute to connect
         for(int i = 0; i < 120 && WiFi.status() != WL_CONNECTED; i++) {
-            #ifdef ENABLE_DEBUG
+            //#ifdef ENABLE_DEBUG
             Serial.print(".");
-            #endif
+            //#endif
             delay(500);
         }
         if(WiFi.status() == WL_CONNECTED) {
@@ -213,12 +231,16 @@ void setup() {
         //-- Start AP
 #if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
 	WiFi.mode(WIFI_MODE_AP);      /* Default to WPA2 */
+    Serial.println("AP Mode 1");
 #else      
         WiFi.mode(WIFI_AP);
-        WiFi.encryptionType(AUTH_WPA2_PSK);	
+        Serial.println("AP Mode 2");
+        //WiFi.encryptionType(AUTH_WPA2_PSK);	
 #endif
         WiFi.softAP(Parameters.getWifiSsid(), Parameters.getWifiPassword(), Parameters.getWifiChannel());
         localIP = WiFi.softAPIP();
+        Serial.print("IP Address ");
+        Serial.println(localIP);
         wait_for_client();
     }
     //-- Boost power to Max
@@ -244,13 +266,21 @@ void setup() {
 #endif    
     //-- Initialize Comm Links
     DEBUG_LOG("Start WiFi Bridge\n");
+    Serial.println("Start Wifi Bridge");
     DEBUG_LOG("Local IP: %s\n", localIP.toString().c_str());
+    Serial.print("Local IP: ");
+    Serial.println(localIP);
 
     Parameters.setLocalIPAddress(localIP);
     IPAddress gcs_ip(localIP);
     //-- I'm getting bogus IP from the DHCP server. Broadcasting for now.
     gcs_ip[3] = 255;
+    //Serial.println(" ");
+    Serial.println("---- Starting GCS ----");
+    Serial.print("GCS IP : ");
+    Serial.println(gcs_ip);
     GCS.begin(&Vehicle, gcs_ip);
+    Serial.println("---- Starting Vehicle----");
     Vehicle.begin(&GCS);
     //-- Initialize Update Server
     updateServer.begin(&updateStatus);
@@ -260,16 +290,27 @@ void setup() {
 //-- Main Loop
 void loop() {
     if(!updateStatus.isUpdating()) {
+        //Serial.println("Is Updating...");
+        //delay(1000);
         if (Component.inRawMode()) {
             GCS.readMessageRaw();
+            //Serial.println("Read CGS Msg Raw");
             delay(0);
             Vehicle.readMessageRaw();
+            //Serial.println("Read Vehicle Msg Raw");
 
         } else {
+            //Serial.println("--------- GCS --------");
             GCS.readMessage();
+            //Serial.println("Read GCS Msg");
+            //Serial.println(" ");
             delay(0);
+            //Serial.println("------ Vehicle -------");
             Vehicle.readMessage();
+            //Serial.println("Read Vehicle Msg");
+            //Serial.println(" ");
         }
     }
     updateServer.checkUpdates();
+    //Serial.println("Check Updates....");
 }

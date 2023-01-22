@@ -40,6 +40,10 @@
 #include "mavesp8266_parameters.h"
 #include "mavesp8266_component.h"
 
+#include <HardwareSerial.h>
+
+HardwareSerial ESP32Serial1(1);
+
 //---------------------------------------------------------------------------------
 MavESP8266Vehicle::MavESP8266Vehicle()
 {
@@ -54,15 +58,22 @@ MavESP8266Vehicle::begin(MavESP8266Bridge* forwardTo)
 {
     MavESP8266Bridge::begin(forwardTo);
     //-- Start UART connected to UAS
-    Serial.begin(getWorld()->getParameters()->getUartBaudRate());
-    //-- Swap to TXD2/RXD2 (GPIO015/GPIO013) For ESP12 Only
+    //ESP32Serial1.println("Resizing buffer...");
+    ESP32Serial1.setRxBufferSize(4096);
+    ESP32Serial1.begin(getWorld()->getParameters()->getUartBaudRate(), SERIAL_8N1, 16, 17);
+    //Serial.println("Starting Serial for UAS");
+    //Serial.print("Baudrate is ");
+    //Serial.println(getWorld()->getParameters()->getUartBaudRate());
+    //Serial.println(" ");
 #ifdef ENABLE_DEBUG
 #ifdef ARDUINO_ESP8266_ESP12
-    Serial.swap();
+    //Serial.swap();
+    //Serial.println("Serial swapped...");
 #endif
 #endif
     // raise serial buffer size (default is 256)
-    Serial.setRxBufferSize(4096);
+    //Serial.println("Resizing buffer...");
+    //Serial.setRxBufferSize(4096);
 }
 
 
@@ -71,7 +82,9 @@ MavESP8266Vehicle::begin(MavESP8266Bridge* forwardTo)
 void
 MavESP8266Vehicle::readMessage()
 {
+    //Serial.println("Enter Read Vehicle Msg");
     if (_readMessage()) {
+        //Serial.println("Enter Underscore Read Msg");
         _forwardTo->sendMessage(&_msg);
     }
     //-- Update radio status (1Hz)
@@ -86,9 +99,9 @@ MavESP8266Vehicle::readMessageRaw() {
     char buf[1024];
     int buf_index = 0;
 
-    while(Serial.available() && buf_index < 300)
+    while(ESP32Serial1.available() && buf_index < 300)
     {
-        int result = Serial.read();
+        int result = ESP32Serial1.read();
         if (result >= 0)
         {
             buf[buf_index] = (char)result;
@@ -109,18 +122,19 @@ MavESP8266Vehicle::sendMessage(mavlink_message_t* message) {
     char buf[300];
     unsigned len = mavlink_msg_to_send_buffer((uint8_t*)buf, message);
     // Send it
-    while (Serial.availableForWrite() < 32) {
+    //while (Serial.availableForWrite() < 32) {
+    while (ESP32Serial1.availableForWrite() < 32) {
         // don't spin in the send loop, wait for 25% of the FIFO to be free
         delay(1);
     }
-    Serial.write((uint8_t*)(void*)buf, len);
+    ESP32Serial1.write((uint8_t*)(void*)buf, len);
     _status.packets_sent++;
     return 1;
 }
 
 int
 MavESP8266Vehicle::sendMessageRaw(uint8_t *buffer, int len) {
-    Serial.write(buffer, len);
+    ESP32Serial1.write(buffer, len);
     //Serial.flush();
     return len;
 }
@@ -139,13 +153,15 @@ MavESP8266Vehicle::getStatus()
 bool
 MavESP8266Vehicle::_readMessage()
 {
+    //Serial.println("Vehicle - Entered Underscore Read Msg ");
 #if defined(ARDUINO_ESP32_DEV) || defined(ARDUINO_ESP32S3_DEV) || defined (ARDUINO_ESP32C3_DEV)  
     char msgReceived = false;
 #else    
     bool msgReceived = false;
 #endif    
-    int16_t avail = Serial.available();
+    int16_t avail = ESP32Serial1.available();
     if (avail <= 0 && _non_mavlink_len != 0 && _rxstatus.parse_state <= MAVLINK_PARSE_STATE_IDLE) {
+        //Serial.println("<<<<< Serial is not active >>>>>");
         // flush out the non-mavlink buffer when there is nothing pending. This
         // allows us to gather non-mavlink msgs into a single write
         _forwardTo->sendMessageRaw(_non_mavlink_buffer, _non_mavlink_len);
@@ -153,7 +169,8 @@ MavESP8266Vehicle::_readMessage()
     }
     while (avail--)
     {
-        int result = Serial.read();
+        //Serial.println(">>>>> Reading Serial... <<<<<");
+        int result = ESP32Serial1.read();
         if (result >= 0)
         {
             // Parsing
@@ -165,11 +182,13 @@ MavESP8266Vehicle::_readMessage()
                                                     &_mav_status);
             handle_non_mavlink(result, msgReceived);
             if (last_parse_error != _rxstatus.parse_error) {
+                //Serial.println("Parsing Errors!!!!");
                 _status.parse_errors++;
             }
             if(msgReceived) {
                 _status.packets_received++;
                 //-- Is this the first packet we got?
+                //Serial.println("First packet_received");
                 if(!_heard_from) {
                     if(_msg.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
                         _heard_from     = true;
@@ -177,10 +196,12 @@ MavESP8266Vehicle::_readMessage()
                         _system_id      = _msg.sysid;
                         _seq_expected   = _msg.seq + 1;
                         _last_heartbeat = millis();
+                        //Serial.println("Vehicle - !_heard_from - MAVLINK_MSG_ID_HEARTBEAT");
                     }
                 } else {
                     if(_msg.msgid == MAVLINK_MSG_ID_HEARTBEAT)
                         _last_heartbeat = millis();
+                    //Serial.println("Vehicle - Last Heartbeat - MAVLINK_MSG_ID_HEARTBEAT");
                     _checkLinkErrors(&_msg);
                 }
 
@@ -188,11 +209,13 @@ MavESP8266Vehicle::_readMessage()
                     // we don't process messages locally with bad CRC,
                     // but we do forward them, so when new messages
                     // are added we can bridge them
+                    //Serial.println("Vehicle - MAVLINK_FRAMING_BAD_CRC");
                     break;
                 }
 
 #ifdef MAVLINK_FRAMING_BAD_SIGNATURE
                 if (msgReceived == MAVLINK_FRAMING_BAD_SIGNATURE) {
+                    //Serial.println("Vehicle - MAVLINK_FRAMING_BAD_SIGNATURE");
                     break;
                 }
 #endif
@@ -200,6 +223,7 @@ MavESP8266Vehicle::_readMessage()
                 //-- Check for message we might be interested
                 if(getWorld()->getComponent()->handleMessage(this, &_msg)){
                     //-- Eat message (don't send it to GCS)
+                    //Serial.println("Vehicle - EAT MESSAGE!!!!");
                     msgReceived = false;
                     continue;
                 }
@@ -212,8 +236,10 @@ MavESP8266Vehicle::_readMessage()
         if(_heard_from && (millis() - _last_heartbeat) > HEARTBEAT_TIMEOUT) {
             _heard_from = false;
             getWorld()->getLogger()->log("Heartbeat timeout from Vehicle\n");
+            //Serial.println("Heartbeat timeout from Vehicle");
         }
     }
+    //Serial.println("Vehicle - Leaving Underscore Read Msg");
     return msgReceived;
 }
 
