@@ -16,7 +16,7 @@ The build enviroment is based on [PlatformIO](http://platformio.org). Follow the
 
 ```
 brew install platformio
-git clone --recursive https://github.com/dogmaphobic/mavesp8266.git
+git clone --recursive https://github.com/markingle/mavesp8266.git
 cd mavesp8266
 platformio run
 ```
@@ -59,7 +59,7 @@ Note: if build fails with `AttributeError: module 'enum' has no attribute 'IntFl
 
 ### Platform [Details](https://github.com/RealFlightSystems/mavesp8266/wiki/Espressif-WLAN-Mavlink-Router-and-Bridge-Development)
 
-### MavLink Submodule
+### MavLink Submodule - >>>> DON'T FORGET TO DO THIS!!!!!!!  <<<<<
 
 The ```git clone --recursive``` above not only cloned the MavESP8266 repository but it also installed the dependent [MavLink](https://github.com/mavlink/c_library) sub-module. To upated the module (when needed), use the command:
 
