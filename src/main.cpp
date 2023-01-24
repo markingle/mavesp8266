@@ -178,7 +178,7 @@ void setup() {
 #else
     //-- Initialized GPIO02 (Used for "Reset To Factory")
     pinMode(GPIO02, INPUT_PULLUP);
-    attachInterrupt(GPIO02, reset_interrupt, FALLING);
+    //attachInterrupt(GPIO02, reset_interrupt, FALLING);
 #endif
     Logger.begin(2048);
 
