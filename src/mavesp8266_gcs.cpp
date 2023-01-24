@@ -147,6 +147,8 @@ MavESP8266GCS::_readMessage()
                     }
                     //-- First packets
                     if(!_heard_from) {
+                        Serial.print("1 MSG ID = ");
+                        Serial.println(_message.msgid);
                         if(_message.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
                             //-- We no longer need DHCP
                             if(getWorld()->getParameters()->getWifiMode() == WIFI_MODE_AP) {
@@ -163,9 +165,17 @@ MavESP8266GCS::_readMessage()
                             _last_heartbeat  = millis();
                         }
                     } else {
+                        Serial.print("2 MSG ID = ");
+                        Serial.println(_message.msgid);
                         if(_message.msgid == MAVLINK_MSG_ID_HEARTBEAT)
                             _last_heartbeat = millis();
+                        //Serial.println("GCS - Last Heartbeat - MAVLINK_MSG_ID_HEARTBEAT");
+                        
+                        if(_message.msgid == MAVLINK_MSG_ID_LED_CONTROL) {
+                        Serial.println("GCS - Test LED MAVLink Cntrl - MAVLINK_MSG_ID_DEBUG_VECT");
+
                         _checkLinkErrors(&_message);
+                    }
                     }
 
                     if (msgReceived == MAVLINK_FRAMING_BAD_CRC) {

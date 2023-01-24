@@ -202,6 +202,10 @@ MavESP8266Vehicle::_readMessage()
                     if(_msg.msgid == MAVLINK_MSG_ID_HEARTBEAT)
                         _last_heartbeat = millis();
                     //Serial.println("Vehicle - Last Heartbeat - MAVLINK_MSG_ID_HEARTBEAT");
+
+                    if(_msg.msgid == MAVLINK_MSG_ID_DEBUG_VECT) {
+                        Serial.println("Vehicle - Test LED MAVLink Cntrl - MAVLINK_MSG_ID_DEBUG_VECT");
+                    }
                     _checkLinkErrors(&_msg);
                 }
 

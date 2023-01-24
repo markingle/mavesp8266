@@ -57,9 +57,9 @@ typedef uint32_t uint32;
 #include <mdns.h>
 #endif
 
-IPAddress local_IP(192, 168, 1, 117);
-IPAddress gateway(192, 168, 1, 1);
-IPAddress subnet(255, 255, 255, 0);
+//IPAddress local_IP(192, 168, 1, 117);
+//IPAddress gateway(192, 168, 1, 1);
+//IPAddress subnet(255, 255, 255, 0);
 
 const char* routerSSID = "Skybrush_2Ghz";
 const char* routerPWD = "";
