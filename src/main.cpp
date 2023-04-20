@@ -63,8 +63,12 @@ IPAddress subnet(255, 255, 255, 0);
 
 const char* routerSSID = "Skybrush_2Ghz";
 const char* routerPWD = "";
+int rssi;
 
 #define GPIO02  2
+#define WIFI_CONN_STATUS 15 //BLUE LED
+#define VEHICLE_COMMS 27 //GREEN LED
+#define GCS_COMMS 13 //YELLOW LED
 
 //---------------------------------------------------------------------------------
 //-- HTTP Update Status
@@ -171,6 +175,10 @@ void setup() {
     delay(1000);
     Parameters.begin();
     Serial.begin(115200);
+    pinMode(WIFI_CONN_STATUS, OUTPUT);
+    pinMode(VEHICLE_COMMS, OUTPUT);
+    pinMode(GCS_COMMS, OUTPUT);
+
 #ifdef ENABLE_DEBUG
     //   We only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
@@ -196,12 +204,14 @@ void setup() {
         //WiFi.config(local_IP, gateway, subnet, 0U, 0U);
         //WiFi.begin(routerSSID, routerPWD); 
         WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), 0U, 0U);
-        WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword());    
-#else            
+        WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword());
+        WiFi.setTxPower(WIFI_POWER_19_5dBm);
+#else    
         WiFi.mode(WIFI_STA);
         Serial.println("Station Mode 2");
         WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), 0U, 0U);
-        WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword()); 
+        WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword());
+        WiFi.setTxPower(WIFI_POWER_19_5dBm);  
 #endif
 #if defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ESP32C3_DEV)
         WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), IPAddress((uint32_t)0), IPAddress((uint32_t)0));
@@ -241,6 +251,7 @@ void setup() {
         localIP = WiFi.softAPIP();
         Serial.print("IP Address ");
         Serial.println(localIP);
+         digitalWrite(WIFI_CONN_STATUS, HIGH);
         wait_for_client();
     }
     //-- Boost power to Max
@@ -281,7 +292,9 @@ void setup() {
     Serial.println(gcs_ip);
     GCS.begin(&Vehicle, gcs_ip);
     Serial.println("---- Starting Vehicle----");
+    Serial.printf("%4d", WiFi.RSSI());
     Vehicle.begin(&GCS);
+
     //-- Initialize Update Server
     updateServer.begin(&updateStatus);
 }
