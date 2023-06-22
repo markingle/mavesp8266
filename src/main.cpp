@@ -65,6 +65,12 @@ const char* routerSSID = "Skybrush_2Ghz";
 const char* routerPWD = "";
 int rssi;
 
+//create a hardware timer for LED
+hw_timer_t * LED_timer = NULL;
+
+//LED state
+volatile byte state = LOW;
+
 #define GPIO02  2
 #define WIFI_CONN_STATUS 15 //BLUE LED
 #define VEHICLE_COMMS 27 //GREEN LED
@@ -126,11 +132,34 @@ MavESP8266World* getWorld()
     return &World;
 }
 
+void IRAM_ATTR LED_blink_timer(){
+    state = !state;
+    digitalWrite(WIFI_CONN_STATUS,state);
+}
+
+void blink_LED(){
+    LED_timer = timerBegin(0, 80,true);
+    timerAttachInterrupt(LED_timer, &LED_blink_timer, true);
+    timerAlarmWrite(LED_timer, 1000000, true);
+    timerAlarmEnable(LED_timer);
+}
+
+void stop_LED(){
+    if (LED_timer != NULL){
+        timerAlarmDisable(LED_timer);
+        timerDetachInterrupt(LED_timer);
+        timerEnd(LED_timer);
+        LED_timer = NULL;
+        Serial.println("LED Stopped");
+    }
+}
+
 //---------------------------------------------------------------------------------
 //-- Wait for a DHCPD client
 void wait_for_client() {
     DEBUG_LOG("Waiting for a client...\n");
     Serial.println("Waiting for a client....");
+    blink_LED();
 #ifdef ENABLE_DEBUG
     int wcount = 0;
 #endif
@@ -168,6 +197,7 @@ void reset_interrupt(){
     ESP.reset();
 #endif    
 }
+
 
 //---------------------------------------------------------------------------------
 //-- Set things up
@@ -251,7 +281,6 @@ void setup() {
         localIP = WiFi.softAPIP();
         Serial.print("IP Address ");
         Serial.println(localIP);
-         digitalWrite(WIFI_CONN_STATUS, HIGH);
         wait_for_client();
     }
     //-- Boost power to Max
@@ -287,6 +316,8 @@ void setup() {
     //-- I'm getting bogus IP from the DHCP server. Broadcasting for now.
     gcs_ip[3] = 255;
     //Serial.println(" ");
+    digitalWrite(WIFI_CONN_STATUS, HIGH);
+    stop_LED();
     Serial.println("---- Starting GCS ----");
     Serial.print("GCS IP : ");
     Serial.println(gcs_ip);
@@ -294,7 +325,6 @@ void setup() {
     Serial.println("---- Starting Vehicle----");
     Serial.printf("%4d", WiFi.RSSI());
     Vehicle.begin(&GCS);
-
     //-- Initialize Update Server
     updateServer.begin(&updateStatus);
 }

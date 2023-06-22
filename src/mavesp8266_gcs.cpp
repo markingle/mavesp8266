@@ -46,6 +46,8 @@
 
 WiFiUDP             _udp;
 
+#define GCS_COMMS 13 //YELLOW LED
+
 //---------------------------------------------------------------------------------
 MavESP8266GCS::MavESP8266GCS()
     : _udp_port(DEFAULT_UDP_HPORT)
@@ -166,6 +168,7 @@ MavESP8266GCS::_readMessage()
                         if(_message.msgid == MAVLINK_MSG_ID_HEARTBEAT)
                             _last_heartbeat = millis();
                         _checkLinkErrors(&_message);
+                        digitalWrite(GCS_COMMS,HIGH);
                     }
 
                     if (msgReceived == MAVLINK_FRAMING_BAD_CRC) {
@@ -210,6 +213,7 @@ MavESP8266GCS::_readMessage()
             _heard_from = false;
             _ip[3] = 255;
             getWorld()->getLogger()->log("Heartbeat timeout from GCS\n");
+            digitalWrite(GCS_COMMS,LOW);
             //Serial.println("Heartbeat timeout from GCS");
         }
     }

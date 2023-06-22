@@ -42,6 +42,10 @@
 
 #include <HardwareSerial.h>
 
+//LED state
+
+#define VEHICLE_COMMS 27 //GREEN LED
+
 HardwareSerial ESP32Serial1(1);
 
 //---------------------------------------------------------------------------------
@@ -199,9 +203,18 @@ MavESP8266Vehicle::_readMessage()
                         //Serial.println("Vehicle - !_heard_from - MAVLINK_MSG_ID_HEARTBEAT");
                     }
                 } else {
+                    Serial.print("Vehicle - MSG ID = ");
+                    Serial.println(_msg.msgid);
                     if(_msg.msgid == MAVLINK_MSG_ID_HEARTBEAT)
+                         digitalWrite(VEHICLE_COMMS,HIGH);
                         _last_heartbeat = millis();
                     //Serial.println("Vehicle - Last Heartbeat - MAVLINK_MSG_ID_HEARTBEAT");
+
+                    if(_msg.msgid == MAVLINK_MSG_ID_DEBUG_VECT) {
+                        mavlink_debug_vect_t packet;
+                        mavlink_msg_debug_vect_decode(&_msg, &packet);
+                        Serial.print("name = "); Serial.println(packet.name);
+                    }
                     _checkLinkErrors(&_msg);
                 }
 
@@ -236,6 +249,7 @@ MavESP8266Vehicle::_readMessage()
         if(_heard_from && (millis() - _last_heartbeat) > HEARTBEAT_TIMEOUT) {
             _heard_from = false;
             getWorld()->getLogger()->log("Heartbeat timeout from Vehicle\n");
+             digitalWrite(VEHICLE_COMMS,LOW);
             //Serial.println("Heartbeat timeout from Vehicle");
         }
     }
