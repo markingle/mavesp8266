@@ -71,10 +71,10 @@ hw_timer_t * LED_timer = NULL;
 //LED state
 volatile byte state = LOW;
 
-#define GPIO02  8
-#define WIFI_CONN_STATUS 9 //BLUE LED
-#define VEHICLE_COMMS 18 //GREEN LED
-#define GCS_COMMS 19 //YELLOW LED
+#define GPIO02  2
+#define WIFI_CONN_STATUS 15 //BLUE LED
+#define VEHICLE_COMMS 27 //GREEN LED
+#define GCS_COMMS 13 //YELLOW LED
 
 //---------------------------------------------------------------------------------
 //-- HTTP Update Status
@@ -239,7 +239,7 @@ void setup() {
 #else    
         WiFi.mode(WIFI_STA);
         Serial.println("Station Mode 2");
-        WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), (uint32_t)0, (uint32_t)0);
+        WiFi.config(Parameters.getWifiStaIP(), Parameters.getWifiStaGateway(), Parameters.getWifiStaSubnet(), 0U, 0U);
         WiFi.begin(Parameters.getWifiStaSsid(), Parameters.getWifiStaPassword());
         WiFi.setTxPower(WIFI_POWER_19_5dBm);  
 #endif
